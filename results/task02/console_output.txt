@@ -1,0 +1,43 @@
+--------------------------------------------------
+Váhy a biasy před fází učení:
+neuron_hidden1.weights [0.72562312 0.38450469]
+neuron_hidden2.weights [0.20154772 0.1750392 ]
+neuron_output.weights [0.33416955 0.35947193]
+neuron_hidden1.bias 0.7522835688439278
+neuron_hidden2.bias 0.19705608169087374
+neuron_output.bias 0.10214279341552213
+--------------------------------------------------
+
+Probíhá učení..
+
+Epoch 0, Loss: 0.26954
+Epoch 1000, Loss: 0.24963
+Epoch 2000, Loss: 0.24833
+Epoch 3000, Loss: 0.23927
+Epoch 4000, Loss: 0.19260
+Epoch 5000, Loss: 0.08589
+Epoch 6000, Loss: 0.02689
+Epoch 7000, Loss: 0.01306
+Epoch 8000, Loss: 0.00814
+Epoch 9000, Loss: 0.00577
+
+--------------------------------------------------
+Váhy a biasy po fázi učení:
+neuron_hidden1.weights [6.96903808 3.18818787]
+neuron_hidden2.weights [6.9663387  3.18744955]
+neuron_output.weights [ 7.32312447 -8.54132599]
+neuron_hidden1.bias -4.160428172057973
+neuron_hidden2.bias -4.715655659211025
+neuron_output.bias -2.7005847100839033
+--------------------------------------------------
+
+Probíhá testování..
+
+Hádaný výstup 0.065137880759   Očekávaný výstup 0   Je to správně? True
+Hádaný výstup 0.935988193795   Očekávaný výstup 1   Je to správně? True
+Hádaný výstup 0.935996425958   Očekávaný výstup 1   Je to správně? True
+Hádaný výstup 0.072117901449   Očekávaný výstup 0   Je to správně? True
+
+Úspěšnost je 100.0 %
+
+--------------------------------------------------
