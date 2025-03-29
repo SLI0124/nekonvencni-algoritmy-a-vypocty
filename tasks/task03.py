@@ -115,16 +115,34 @@ class HopfieldNetwork:
 class GridCanvas(tk.Canvas):
     """Plátno pro zobrazení a editaci vzoru v mřížce."""
 
-    def __init__(self, master, grid_size, cell_size, on_cell_toggle):
-        width = height = grid_size * cell_size
-        super().__init__(master, width=width, height=height, bg='white')
+    def __init__(self, master, grid_size, min_cell_size, on_cell_toggle):
+        super().__init__(master, bg='white')
 
+        self.current_grid = None
         self.grid_size = grid_size
-        self.cell_size = cell_size
+        self.min_cell_size = min_cell_size
         self.on_cell_toggle = on_cell_toggle
         self.cells = []
+        self.cell_size = min_cell_size
 
+        self.bind("<Configure>", self.on_resize)
         self._create_grid()
+
+    def on_resize(self, event):
+        """Reaguje na změnu velikosti plátna."""
+        width, height = event.width, event.height
+        new_cell_size = min(width, height) // self.grid_size
+
+        new_cell_size = max(new_cell_size, self.min_cell_size)  # Zajištění minimální velikosti
+
+        if new_cell_size != self.cell_size:
+            self.cell_size = new_cell_size
+            self.delete("all")  # po roztažení plátna vymažeme vše a znovu vytvoříme mřížku
+            self.cells = []
+            self._create_grid()
+
+            if hasattr(self, 'current_grid'):  # Pokud máme aktuální mřížku, aktualizujeme ji
+                self.update_display(self.current_grid)
 
     def _create_grid(self):
         """Vytvoří mřížku buněk."""
@@ -138,11 +156,16 @@ class GridCanvas(tk.Canvas):
 
     def update_display(self, grid):
         """Aktualizuje zobrazení podle matice."""
+        self.current_grid = grid  # Uložíme aktuální stav pro případné překreslení
+        if not self.cells:
+            return  # Pokud nejsou buňky vytvořeny, nelze aktualizovat
+
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 idx = i * self.grid_size + j
-                color = 'black' if grid[i][j] == 1 else 'white'
-                self.itemconfig(self.cells[idx], fill=color)
+                if idx < len(self.cells):  # Kontrola pro případ, že by se velikost gridu změnila
+                    color = 'black' if grid[i][j] == 1 else 'white'
+                    self.itemconfig(self.cells[idx], fill=color)
 
 
 class ControlPanel(tk.Frame):
@@ -151,30 +174,54 @@ class ControlPanel(tk.Frame):
     def __init__(self, master, callbacks):
         super().__init__(master)
 
-        buttons = [
-            ("Save Pattern", callbacks['save_pattern']),
-            ("Show Saved Pattern", callbacks['show_pattern']),
-            ("Clear Grid", callbacks['clear']),
-            ("Recover Synchronously", callbacks['sync']),
-            ("Recover Asynchronously", callbacks['async'])
+        self.buttons = []
+        button_texts = [
+            ("Save Pattern", callbacks['save_pattern'], "green", "white"),
+            ("Show Saved Pattern", callbacks['show_pattern'], "blue", "white"),
+            ("Clear Grid", callbacks['clear'], "red", "white"),
+            ("Recover Synchronously", callbacks['sync'], "yellow", "black"),
+            ("Recover Asynchronously", callbacks['async'], "yellow", "black")
         ]
 
-        for text, command in buttons:
-            btn = tk.Button(self, text=text, command=command)
-            btn.pack(fill=tk.X, padx=5, pady=5)
+        self.columnconfigure(0, weight=1)  # Umožníme roztahování sloupce
+
+        for i, (text, command, bg_color, fg_color) in enumerate(button_texts):
+            btn = tk.Button(self, text=text, command=command,
+                            bg=bg_color, fg=fg_color,
+                            activebackground=bg_color, activeforeground=fg_color,
+                            padx=10, pady=5)
+            btn.grid(row=i, column=0, sticky="ew", padx=10, pady=5)
+            self.buttons.append(btn)
+
+        self.configure(width=200)  # Nastavení minimální šířky panelu
+
+        self.rowconfigure(len(button_texts), weight=1)  # Tlačítka se mohou roztahovat
 
 
 class HopfieldApp:
     """Hlavní aplikace pro práci s Hopfieldovou sítí."""
 
-    def __init__(self, master, grid_size=5, cell_size=50):
+    def __init__(self, master, grid_size=5, min_cell_size=30):
         self.master = master
         self.grid_size = grid_size
-        self.cell_size = cell_size
+        self.min_cell_size = min_cell_size
 
         self.grid = np.zeros((grid_size, grid_size), np.int32)
         self.network = HopfieldNetwork(grid_size)
         self.current_pattern_index = -1
+
+        # Nastavení hlavního okna
+        master.title("Hopfieldova síť")
+        master.minsize(500, 400)  # Minimální velikost okna
+
+        # Hlavní rozdělení okna na dvě části
+        self.main_frame = tk.Frame(master)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Umožníme, aby se obě části roztahovaly
+        self.main_frame.columnconfigure(0, weight=3)  # Canvas dostane více prostoru
+        self.main_frame.columnconfigure(1, weight=1)  # Panel s tlačítky méně prostoru
+        self.main_frame.rowconfigure(0, weight=1)
 
         # Vytvoření GUI
         callbacks = {
@@ -185,11 +232,16 @@ class HopfieldApp:
             'async': self.recover_async
         }
 
-        self.canvas = GridCanvas(master, grid_size, cell_size, self.toggle_cell)
-        self.canvas.pack(side=tk.LEFT)
+        # Canvas frame - levá část
+        self.canvas_frame = tk.Frame(self.main_frame)
+        self.canvas_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
 
-        self.control_panel = ControlPanel(master, callbacks)
-        self.control_panel.pack(side=tk.RIGHT, fill=tk.Y)
+        self.canvas = GridCanvas(self.canvas_frame, grid_size, min_cell_size, self.toggle_cell)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # Control panel - pravá část
+        self.control_panel = ControlPanel(self.main_frame, callbacks)
+        self.control_panel.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
 
     def toggle_cell(self, i, j):
         """Přepne stav buňky na pozici [i, j]."""
@@ -232,10 +284,9 @@ class HopfieldApp:
 
 
 def main():
-    """Spustí aplikaci Hopfieldovy sítě."""
     root = tk.Tk()
-    root.title("Hopfieldova síť")
-    HopfieldApp(root, grid_size=5, cell_size=50)
+    root.geometry("700x500")
+    HopfieldApp(root, grid_size=5, min_cell_size=30)
     root.mainloop()
 
 
