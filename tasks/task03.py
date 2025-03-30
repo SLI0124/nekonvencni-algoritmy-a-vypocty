@@ -141,7 +141,7 @@ class GridCanvas(tk.Canvas):
             self.cells = []
             self._create_grid()
 
-            if hasattr(self, 'current_grid'):  # Pokud máme aktuální mřížku, aktualizujeme ji
+            if hasattr(self, 'current_grid') and self.current_grid is not None:
                 self.update_display(self.current_grid)
 
     def _create_grid(self):
@@ -211,7 +211,7 @@ class HopfieldApp:
         self.current_pattern_index = -1
 
         # Nastavení hlavního okna
-        master.title("Hopfieldova síť")
+        master.title("Hopfield Network Pattern Recognition")
         master.minsize(500, 400)  # Minimální velikost okna
 
         # Hlavní rozdělení okna na dvě části
@@ -286,7 +286,7 @@ class HopfieldApp:
 def main():
     root = tk.Tk()
     root.geometry("700x500")
-    HopfieldApp(root, grid_size=5, min_cell_size=30)
+    HopfieldApp(root, grid_size=10, min_cell_size=30)
     root.mainloop()
 
 
