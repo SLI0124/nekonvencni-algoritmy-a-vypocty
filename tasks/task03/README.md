@@ -221,12 +221,12 @@ podporuje více vzorů.
 
 ### Číslo 2
 
-![Číslo 2](../../results/task03/number_2.gif)
+![Číslo 2](results/number_2.gif)
 
 ### Číslo 8
 
-![Číslo 8](../../results/task03/number_8.gif)
+![Číslo 8](results/number_8.gif)
 
 ### Písmeno X
 
-![Písmeno X](../../results/task03/letter_x.gif)
+![Písmeno X](results/letter_x.gif)
