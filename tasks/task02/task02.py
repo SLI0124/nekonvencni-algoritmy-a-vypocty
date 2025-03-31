@@ -120,8 +120,8 @@ def plot_decision_boundary(network):
     plt.ylabel("Vstup 2")
     plt.legend()
 
-    # Uložení obrázku do složky results/task02
-    save_dir = "../../results/task02"
+    # Uložení obrázku do složky results
+    save_dir = "results"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     save_name = os.path.join(save_dir, "decision_boundary.png")
