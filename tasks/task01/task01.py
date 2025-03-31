@@ -118,7 +118,7 @@ def plot_results(X, y, perceptron, predictions):
         color = 'blue' if predictions[i] == 1 else 'red'
         plt.scatter(X[i][0], X[i][1], color=color)
 
-    save_path = "../../results/task01"
+    save_path = "results"
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
