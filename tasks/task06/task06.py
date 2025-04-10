@@ -1,6 +1,8 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog, messagebox
 import math
+import json
+import os
 
 
 class LSystemApp:
@@ -96,6 +98,17 @@ class LSystemApp:
         self.clear_btn = ttk.Button(btn_frame, text="Clear Canvas", command=self.clear_canvas)
         self.clear_btn.pack(fill=tk.X, padx=5, pady=2)
 
+        # Sekce pro ukládání a načítání
+        self.io_frame = ttk.LabelFrame(self.right_frame, text="Save & Load")
+        self.io_frame.pack(fill=tk.X, padx=5, pady=10)
+
+        # Tlačítka pro ukládání a načítání
+        self.save_btn = ttk.Button(self.io_frame, text="Save as JSON", command=self.save_lsystem)
+        self.save_btn.pack(fill=tk.X, padx=5, pady=2)
+
+        self.load_btn = ttk.Button(self.io_frame, text="Load from JSON", command=self.load_lsystem)
+        self.load_btn.pack(fill=tk.X, padx=5, pady=2)
+
         # Initialize example systems
         self.examples = {
             1: {
@@ -139,6 +152,11 @@ class LSystemApp:
                 "start_angle": ""
             }
         }
+
+        # Vytvoření adresáře pro ukládání L-systémů, pokud neexistuje
+        self.systems_dir = "lsystems"
+        if not os.path.exists(self.systems_dir):
+            os.makedirs(self.systems_dir)
 
     def clear_canvas(self):
         self.canvas.delete("all")
@@ -228,6 +246,88 @@ class LSystemApp:
                 # Pop state from stack
                 if stack:
                     x, y, current_angle = stack.pop()
+
+    def save_lsystem(self):
+        """Uloží aktuální L-systém jako JSON do adresáře lsystems s automaticky generovaným názvem"""
+
+        # Získání dat L-systému
+        lsystem_data = {
+            "axiom": self.axiom_var.get(),
+            "rule": self.rule_var.get(),
+            "angle": self.angle_var.get(),
+            "nesting": self.nesting_var.get(),
+            "line_size": self.line_size_var.get(),
+            "start_x": self.start_x_var.get(),
+            "start_y": self.start_y_var.get(),
+            "start_angle": self.start_angle_var.get()
+        }
+
+        # Kontrola zda jsou vyplněna základní data
+        axiom = lsystem_data["axiom"]
+        rule = lsystem_data["rule"]
+
+        if not axiom or not rule:
+            messagebox.showerror("Chyba", "Vyplňte alespoň axiom a pravidlo")
+            return
+
+        # Vytvoření základního názvu z prvních znaků pravidla a axiomu
+        base_name = f"ls_{axiom[:3]}_{rule.split('->')[0]}"
+        base_name = base_name.replace("->", "").replace("[", "").replace("]", "")
+        base_name = base_name.replace("+", "p").replace("-", "m")
+
+        # Zjištění nejvyššího existujícího čísla pro daný základ názvu
+        count = 1
+        while os.path.exists(os.path.join(self.systems_dir, f"{base_name}_{count}.json")):
+            count += 1
+
+        # Vytvoření konečného názvu souboru
+        filename = f"{base_name}_{count}.json"
+        filepath = os.path.join(self.systems_dir, filename)
+
+        try:
+            with open(filepath, 'w') as f:
+                json.dump(lsystem_data, f, indent=2)
+            messagebox.showinfo("Úspěch", f"L-systém byl uložen jako {filename}")
+        except Exception as e:
+            messagebox.showerror("Chyba při ukládání", f"Nastala chyba: {str(e)}")
+
+    def load_lsystem(self):
+        """Načte L-systém z JSON souboru"""
+        filetypes = [("JSON files", "*.json"), ("All files", "*.*")]
+        filepath = filedialog.askopenfilename(
+            initialdir=self.systems_dir,
+            title="Vyberte soubor L-systému",
+            filetypes=filetypes
+        )
+
+        if not filepath:
+            return
+
+        try:
+            with open(filepath, 'r') as f:
+                lsystem_data = json.load(f)
+
+            # Nastavení hodnot do rozhraní
+            self.axiom_var.set(lsystem_data.get("axiom", ""))
+            self.rule_var.set(lsystem_data.get("rule", ""))
+            self.angle_var.set(lsystem_data.get("angle", ""))
+            self.nesting_var.set(lsystem_data.get("nesting", 3))
+            self.line_size_var.set(lsystem_data.get("line_size", 5))
+            self.start_x_var.set(lsystem_data.get("start_x", 400))
+            self.start_y_var.set(lsystem_data.get("start_y", 300))
+            self.start_angle_var.set(lsystem_data.get("start_angle", ""))
+
+            # Nastavení názvu L-systému podle názvu souboru
+            filename = os.path.basename(filepath)
+            system_name = os.path.splitext(filename)[0]
+            self.system_name_var.set(system_name)
+
+            # Automatické vykreslení načteného L-systému
+            self.draw_custom()
+
+            messagebox.showinfo("Úspěch", f"L-systém {system_name} byl úspěšně načten")
+        except Exception as e:
+            messagebox.showerror("Chyba při načítání", f"Nastala chyba: {str(e)}")
 
 
 if __name__ == "__main__":
