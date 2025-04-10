@@ -7,14 +7,15 @@ import os
 
 class LSystemApp:
     def __init__(self, root):
+        # Inicializace hlavního okna aplikace
         self.root = root
         self.root.title("L-Systems Fractal Generator")
 
-        # Hlavní rozdělení na levou část (plátno) a pravou část (kontroly)
+        # Hlavní rámec aplikace, rozdělený na levou a pravou část
         self.main_frame = ttk.Frame(root)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Levá část - plátno pro kreslení
+        # Levá část - plátno pro kreslení fraktálů
         self.left_frame = ttk.Frame(self.main_frame)
         self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -25,10 +26,11 @@ class LSystemApp:
         self.right_frame = ttk.Frame(self.main_frame)
         self.right_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
 
-        # Example buttons
+        # Sekce s příklady L-systémů
         self.example_frame = ttk.LabelFrame(self.right_frame, text="Examples")
         self.example_frame.pack(fill=tk.X, padx=5, pady=5)
 
+        # Tlačítka pro vykreslení předdefinovaných příkladů
         self.draw_buttons = []
         for i in range(4):
             btn = ttk.Button(self.example_frame, text=f"Draw Example {i + 1}",
@@ -36,11 +38,11 @@ class LSystemApp:
             btn.pack(fill=tk.X, padx=5, pady=2)
             self.draw_buttons.append(btn)
 
-        # Custom settings frame
+        # Sekce pro vlastní nastavení L-systému
         self.custom_frame = ttk.LabelFrame(self.right_frame, text="Custom L-System")
         self.custom_frame.pack(fill=tk.X, padx=5, pady=10)
 
-        # Position and angle controls
+        # Ovládací prvky pro nastavení počáteční pozice a úhlu
         param_frame = ttk.Frame(self.custom_frame)
         param_frame.pack(fill=tk.X, padx=5, pady=5)
 
@@ -59,7 +61,7 @@ class LSystemApp:
         self.start_angle_entry = ttk.Entry(param_frame, textvariable=self.start_angle_var, width=8)
         self.start_angle_entry.grid(row=2, column=1, sticky="w", padx=5, pady=2)
 
-        # L-System parameters
+        # Ovládací prvky pro parametry L-systému
         ls_frame = ttk.Frame(self.custom_frame)
         ls_frame.pack(fill=tk.X, padx=5, pady=5)
 
@@ -88,7 +90,7 @@ class LSystemApp:
         self.line_size_entry = ttk.Entry(ls_frame, textvariable=self.line_size_var, width=8)
         self.line_size_entry.grid(row=4, column=1, sticky="w", padx=5, pady=2)
 
-        # Action buttons
+        # Tlačítka pro vykreslení a vyčištění plátna
         btn_frame = ttk.Frame(self.right_frame)
         btn_frame.pack(fill=tk.X, pady=10)
 
@@ -98,7 +100,7 @@ class LSystemApp:
         self.clear_btn = ttk.Button(btn_frame, text="Clear Canvas", command=self.clear_canvas)
         self.clear_btn.pack(fill=tk.X, padx=5, pady=2)
 
-        # Sekce pro ukládání a načítání
+        # Sekce pro ukládání a načítání L-systémů
         self.io_frame = ttk.LabelFrame(self.right_frame, text="Save & Load")
         self.io_frame.pack(fill=tk.X, padx=5, pady=10)
 
@@ -109,9 +111,10 @@ class LSystemApp:
         self.load_btn = ttk.Button(self.io_frame, text="Load from JSON", command=self.load_lsystem)
         self.load_btn.pack(fill=tk.X, padx=5, pady=2)
 
-        # Initialize example systems
+        # Inicializace předdefinovaných příkladů L-systémů
         self.examples = {
             1: {
+                # Příklad čtvercového fraktálu
                 "axiom": "F+F+F+F",
                 "rule": "F->F+F-F-FF+F+F-F",
                 "angle": "90",
@@ -122,6 +125,7 @@ class LSystemApp:
                 "start_angle": "0"
             },
             2: {
+                # Příklad trojúhelníkového fraktálu
                 "axiom": "F++F++F",
                 "rule": "F->F+F--F+F",
                 "angle": "60",
@@ -159,9 +163,11 @@ class LSystemApp:
             os.makedirs(self.systems_dir)
 
     def clear_canvas(self):
+        # Vyčištění plátna
         self.canvas.delete("all")
 
     def load_example(self, example_num):
+        # Načtení předdefinovaného příkladu L-systému
         example = self.examples[example_num]
         self.axiom_var.set(example["axiom"])
         self.rule_var.set(example["rule"])
@@ -174,6 +180,7 @@ class LSystemApp:
         self.draw_custom()
 
     def draw_custom(self):
+        # Vykreslení vlastního L-systému na základě zadaných parametrů
         axiom = self.axiom_var.get()
         rule = self.rule_var.get()
         angle_deg = self.angle_var.get()
@@ -183,25 +190,26 @@ class LSystemApp:
         start_y = self.start_y_var.get()
         start_angle = self.start_angle_var.get()
 
-        # Convert angle to radians
+        # Převod úhlu na radiány
         try:
             angle = math.radians(float(angle_deg)) if angle_deg else math.pi / 2
         except ValueError:
             angle = math.pi / 2
 
-        # Set default start angle
+        # Nastavení výchozího úhlu
         try:
             start_angle_rad = math.radians(float(start_angle)) if start_angle else 0
         except ValueError:
             start_angle_rad = 0
 
-        # Generate the L-system string
+        # Generování řetězce L-systému
         l_string = self.generate_l_string(axiom, rule, nesting)
 
-        # Draw the L-system
+        # Vykreslení řetězce L-systému
         self.draw_l_string(l_string, angle, line_size, start_x, start_y, start_angle_rad)
 
     def generate_l_string(self, axiom, rule, nesting):
+        # Generování řetězce L-systému na základě axiómu a pravidla
         current = axiom
         rule_from, rule_to = rule.split("->") if "->" in rule else ("F", "")
 
@@ -217,33 +225,34 @@ class LSystemApp:
         return current
 
     def draw_l_string(self, l_string, angle, line_length, start_x, start_y, start_angle):
+        # Vykreslení řetězce L-systému na plátno
         x, y = start_x, start_y
         current_angle = start_angle
         stack = []
 
         for char in l_string:
             if char == 'F':
-                # Draw forward
+                # Kreslení čáry vpřed
                 new_x = x + line_length * math.cos(current_angle)
                 new_y = y + line_length * math.sin(current_angle)
                 self.canvas.create_line(x, y, new_x, new_y, fill="black")
                 x, y = new_x, new_y
             elif char == 'b':
-                # Move forward without drawing
+                # Posun vpřed bez kreslení
                 new_x = x + line_length * math.cos(current_angle)
                 new_y = y + line_length * math.sin(current_angle)
                 x, y = new_x, new_y
             elif char == '+':
-                # Turn right
+                # Otočení doprava
                 current_angle += angle
             elif char == '-':
-                # Turn left
+                # Otočení doleva
                 current_angle -= angle
             elif char == '[':
-                # Push current state to stack
+                # Uložení aktuálního stavu na zásobník
                 stack.append((x, y, current_angle))
             elif char == ']':
-                # Pop state from stack
+                # Obnovení stavu ze zásobníku
                 if stack:
                     x, y, current_angle = stack.pop()
 
@@ -331,6 +340,7 @@ class LSystemApp:
 
 
 if __name__ == "__main__":
+    # Spuštění aplikace
     root = tk.Tk()
     app = LSystemApp(root)
     root.mainloop()
