@@ -3,6 +3,7 @@ from tkinter import ttk, filedialog, messagebox
 import math
 import json
 import os
+from tkinter.colorchooser import askcolor
 
 
 class LSystemApp:
@@ -21,6 +22,13 @@ class LSystemApp:
 
         self.canvas = tk.Canvas(self.left_frame, width=800, height=600, bg="white")
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Variables for canvas dragging
+        self.drag_data = {"x": 0, "y": 0}
+
+        # Bind mouse events for dragging
+        self.canvas.bind("<ButtonPress-1>", self.start_drag)
+        self.canvas.bind("<B1-Motion>", self.do_drag)
 
         # Pravá část - ovládací prvky
         self.right_frame = ttk.Frame(self.main_frame)
@@ -162,6 +170,26 @@ class LSystemApp:
         if not os.path.exists(self.systems_dir):
             os.makedirs(self.systems_dir)
 
+        # Přidání textového pole pro zobrazení generovaného řetězce
+        self.output_frame = ttk.LabelFrame(self.right_frame, text="Generated String")
+        self.output_frame.pack(fill=tk.X, padx=5, pady=5)
+        self.output_text = tk.Text(self.output_frame, height=5, wrap=tk.WORD)
+        self.output_text.pack(fill=tk.BOTH, padx=5, pady=5)
+
+        # Přidání ovládacích prvků pro barvu a tloušťku čáry
+        self.style_frame = ttk.LabelFrame(self.right_frame, text="Style")
+        self.style_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        ttk.Label(self.style_frame, text="Line Color:").grid(row=0, column=0, sticky="e", pady=2)
+        self.color_var = tk.StringVar(value="black")
+        self.color_btn = ttk.Button(self.style_frame, text="Choose Color", command=self.choose_color)
+        self.color_btn.grid(row=0, column=1, sticky="w", padx=5, pady=2)
+
+        ttk.Label(self.style_frame, text="Line Thickness:").grid(row=1, column=0, sticky="e", pady=2)
+        self.thickness_var = tk.IntVar(value=1)
+        self.thickness_entry = ttk.Entry(self.style_frame, textvariable=self.thickness_var, width=8)
+        self.thickness_entry.grid(row=1, column=1, sticky="w", padx=5, pady=2)
+
     def clear_canvas(self):
         # Vyčištění plátna
         self.canvas.delete("all")
@@ -180,6 +208,16 @@ class LSystemApp:
         self.draw_custom()
 
     def draw_custom(self):
+        # Validace vstupů
+        try:
+            angle_deg = float(self.angle_var.get())
+            nesting = int(self.nesting_var.get())
+            if nesting < 0:
+                raise ValueError("Nesting must be a non-negative integer.")
+        except ValueError as e:
+            messagebox.showerror("Invalid Input", f"Error in input values: {e}")
+            return
+
         # Vykreslení vlastního L-systému na základě zadaných parametrů
         axiom = self.axiom_var.get()
         rule = self.rule_var.get()
@@ -205,6 +243,10 @@ class LSystemApp:
         # Generování řetězce L-systému
         l_string = self.generate_l_string(axiom, rule, nesting)
 
+        # Zobrazení generovaného řetězce v textovém poli
+        self.output_text.delete(1.0, tk.END)
+        self.output_text.insert(tk.END, l_string)
+
         # Vykreslení řetězce L-systému
         self.draw_l_string(l_string, angle, line_size, start_x, start_y, start_angle_rad)
 
@@ -225,17 +267,19 @@ class LSystemApp:
         return current
 
     def draw_l_string(self, l_string, angle, line_length, start_x, start_y, start_angle):
-        # Vykreslení řetězce L-systému na plátno
+        # Vykreslení řetězce L-systému na plátno s podporou barvy a tloušťky čáry
         x, y = start_x, start_y
         current_angle = start_angle
         stack = []
+        color = self.color_var.get()
+        thickness = self.thickness_var.get()
 
         for char in l_string:
             if char == 'F':
                 # Kreslení čáry vpřed
                 new_x = x + line_length * math.cos(current_angle)
                 new_y = y + line_length * math.sin(current_angle)
-                self.canvas.create_line(x, y, new_x, new_y, fill="black")
+                self.canvas.create_line(x, y, new_x, new_y, fill=color, width=thickness)
                 x, y = new_x, new_y
             elif char == 'b':
                 # Posun vpřed bez kreslení
@@ -336,7 +380,30 @@ class LSystemApp:
 
             messagebox.showinfo("Úspěch", f"L-systém {system_name} byl úspěšně načten")
         except Exception as e:
-            messagebox.showerror("Chyba při načítání", f"Nastala chyba: {str(e)}")
+            messagebox.showerror("Chyba při načítání", f"Nastala chyba: {str(e)})")
+
+    def choose_color(self):
+        # Výběr barvy čáry
+        color_code = askcolor(title="Choose Line Color")[1]
+        if color_code:
+            self.color_var.set(color_code)
+
+    def start_drag(self, event):
+        """Start dragging the canvas."""
+        self.drag_data["x"] = event.x
+        self.drag_data["y"] = event.y
+
+    def do_drag(self, event):
+        """Handle dragging of the canvas."""
+        dx = event.x - self.drag_data["x"]
+        dy = event.y - self.drag_data["y"]
+
+        # Move all items on the canvas
+        self.canvas.move("all", dx, dy)
+
+        # Update drag data
+        self.drag_data["x"] = event.x
+        self.drag_data["y"] = event.y
 
 
 if __name__ == "__main__":
