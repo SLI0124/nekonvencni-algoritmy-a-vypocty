@@ -30,8 +30,8 @@ class LSystemApp:
         self.canvas.bind("<ButtonPress-1>", self.start_drag)
         self.canvas.bind("<B1-Motion>", self.do_drag)
 
-        # Pravá část - ovládací prvky
-        self.right_frame = ttk.Frame(self.main_frame)
+        # Pravá část - ovládací prvky (zmenšení šířky)
+        self.right_frame = ttk.Frame(self.main_frame, width=250)
         self.right_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
 
         # Sekce s příklady L-systémů
@@ -249,8 +249,8 @@ class LSystemApp:
         self.draw_l_string(l_string, angle, line_size, start_x, start_y, start_angle_rad)
 
     def generate_l_string(self, axiom, rule, nesting):
-        # Odstranění mezer kolem znaku '>'
-        rule = rule.replace(" >", ">").replace("> ", ">")
+        # Odstranění mezer kolem znaku '>' a odstranění počátečních/trailing mezer
+        rule = rule.strip().replace(" >", ">").replace("> ", ">")
         current = axiom
         rule_from, rule_to = rule.split(">") if ">" in rule else ("F", "")
 
