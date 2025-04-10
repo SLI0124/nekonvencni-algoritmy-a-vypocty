@@ -300,7 +300,7 @@ class LSystemApp:
                     x, y, current_angle = stack.pop()
 
     def save_lsystem(self):
-        """Uloží aktuální L-systém jako JSON do adresáře lsystems s automaticky generovaným názvem"""
+        """Uloží aktuální L-systém jako JSON do adresáře lsystems s možností zadání názvu souboru"""
 
         # Získání dat L-systému
         lsystem_data = {
@@ -322,24 +322,21 @@ class LSystemApp:
             messagebox.showerror("Chyba", "Vyplňte alespoň axiom a pravidlo")
             return
 
-        # Vytvoření základního názvu z prvních znaků pravidla a axiomu
-        base_name = f"ls_{axiom[:3]}_{rule.split('>')[0]}"
-        base_name = base_name.replace(">", "").replace("[", "").replace("]", "")
-        base_name = base_name.replace("+", "p").replace("-", "m")
+        # Dialog pro zadání názvu souboru
+        filename = filedialog.asksaveasfilename(
+            initialdir=self.systems_dir,
+            title="Uložit L-systém jako",
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
 
-        # Zjištění nejvyššího existujícího čísla pro daný základ názvu
-        count = 1
-        while os.path.exists(os.path.join(self.systems_dir, f"{base_name}_{count}.json")):
-            count += 1
-
-        # Vytvoření konečného názvu souboru
-        filename = f"{base_name}_{count}.json"
-        filepath = os.path.join(self.systems_dir, filename)
+        if not filename:
+            return
 
         try:
-            with open(filepath, 'w') as f:
+            with open(filename, 'w') as f:
                 json.dump(lsystem_data, f, indent=2)
-            messagebox.showinfo("Úspěch", f"L-systém byl uložen jako {filename}")
+            messagebox.showinfo("Úspěch", f"L-systém byl uložen jako {os.path.basename(filename)}")
         except Exception as e:
             messagebox.showerror("Chyba při ukládání", f"Nastala chyba: {str(e)}")
 
