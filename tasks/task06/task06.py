@@ -23,10 +23,10 @@ class LSystemApp:
         self.canvas = tk.Canvas(self.left_frame, width=800, height=600, bg="white")
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Variables for canvas dragging
+        # Proměnné pro přetahování plátna
         self.drag_data = {"x": 0, "y": 0}
 
-        # Bind mouse events for dragging
+        # Navázání událostí myši pro přetahování
         self.canvas.bind("<ButtonPress-1>", self.start_drag)
         self.canvas.bind("<B1-Motion>", self.do_drag)
 
@@ -122,7 +122,6 @@ class LSystemApp:
         # Inicializace předdefinovaných příkladů L-systémů
         self.examples = {
             1: {
-                # Příklad čtvercového fraktálu
                 "axiom": "F+F+F+F",
                 "rule": "F>F+F-F-FF+F+F-F",
                 "angle": "90",
@@ -133,7 +132,6 @@ class LSystemApp:
                 "start_angle": "0"
             },
             2: {
-                # Příklad trojúhelníkového fraktálu
                 "axiom": "F++F++F",
                 "rule": "F>F+F--F+F",
                 "angle": "60",
@@ -210,29 +208,29 @@ class LSystemApp:
     def draw_custom(self):
         # Validace vstupů
         try:
-            angle_deg = float(self.angle_var.get())
+            angle_input = self.angle_var.get()
+            # Kontrola, zda vstup obsahuje "pi" a jeho vyhodnocení
+            if "pi" in angle_input:
+                angle_deg = eval(angle_input.replace("pi", str(math.pi))) * (180 / math.pi)
+            else:
+                angle_deg = float(angle_input)
             nesting = int(self.nesting_var.get())
             if nesting < 0:
-                raise ValueError("Nesting must be a non-negative integer.")
+                raise ValueError("Nesting musí být nezáporné celé číslo.")
         except ValueError as e:
-            messagebox.showerror("Invalid Input", f"Error in input values: {e}")
+            messagebox.showerror("Neplatný vstup", f"Chyba ve vstupních hodnotách: {e}")
             return
 
         # Vykreslení vlastního L-systému na základě zadaných parametrů
         axiom = self.axiom_var.get()
         rule = self.rule_var.get()
-        angle_deg = self.angle_var.get()
-        nesting = self.nesting_var.get()
         line_size = self.line_size_var.get()
         start_x = self.start_x_var.get()
         start_y = self.start_y_var.get()
         start_angle = self.start_angle_var.get()
 
         # Převod úhlu na radiány
-        try:
-            angle = math.radians(float(angle_deg)) if angle_deg else math.pi / 2
-        except ValueError:
-            angle = math.pi / 2
+        angle = math.radians(angle_deg)
 
         # Nastavení výchozího úhlu
         try:
@@ -251,7 +249,7 @@ class LSystemApp:
         self.draw_l_string(l_string, angle, line_size, start_x, start_y, start_angle_rad)
 
     def generate_l_string(self, axiom, rule, nesting):
-        # Remove spaces around '>'
+        # Odstranění mezer kolem znaku '>'
         rule = rule.replace(" >", ">").replace("> ", ">")
         current = axiom
         rule_from, rule_to = rule.split(">") if ">" in rule else ("F", "")
@@ -289,10 +287,10 @@ class LSystemApp:
                 x, y = new_x, new_y
             elif char == '+':
                 # Otočení doprava
-                current_angle += angle
+                current_angle -= angle
             elif char == '-':
                 # Otočení doleva
-                current_angle -= angle
+                current_angle += angle
             elif char == '[':
                 # Uložení aktuálního stavu na zásobník
                 stack.append((x, y, current_angle))
@@ -374,7 +372,6 @@ class LSystemApp:
             # Nastavení názvu L-systému podle názvu souboru
             filename = os.path.basename(filepath)
             system_name = os.path.splitext(filename)[0]
-            self.system_name_var.set(system_name)
 
             # Automatické vykreslení načteného L-systému
             self.draw_custom()
@@ -390,25 +387,24 @@ class LSystemApp:
             self.color_var.set(color_code)
 
     def start_drag(self, event):
-        """Start dragging the canvas."""
+        """Zahájení přetahování plátna."""
         self.drag_data["x"] = event.x
         self.drag_data["y"] = event.y
 
     def do_drag(self, event):
-        """Handle dragging of the canvas."""
+        """Zpracování přetahování plátna."""
         dx = event.x - self.drag_data["x"]
         dy = event.y - self.drag_data["y"]
 
-        # Move all items on the canvas
+        # Posun všech prvků na plátně
         self.canvas.move("all", dx, dy)
 
-        # Update drag data
+        # Aktualizace dat přetahování
         self.drag_data["x"] = event.x
         self.drag_data["y"] = event.y
 
 
 if __name__ == "__main__":
-    # Spuštění aplikace
     root = tk.Tk()
     app = LSystemApp(root)
     root.mainloop()
