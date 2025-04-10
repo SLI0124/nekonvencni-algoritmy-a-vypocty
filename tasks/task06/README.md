@@ -160,6 +160,10 @@ def choose_color(self):
 
 ## Příklady
 
+Všechny uložené předdefinované L-systémy jsem čerpal z tohotoho [odkazu](https://fedimser.github.io/l-systems.html).
+Zároveň jsem uložil jen ty, které měli jen jeden axiom a jedno pravidlo. Ty jsou uložené jako JSON soubory v adresáři
+`lsystems`.
+
 1. **Příklad 1**
     - **Axiom**: `F+F+F+F`
     - **Pravidlo**: `F > F+F-F-FF+F+F-F`
