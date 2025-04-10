@@ -1,0 +1,10 @@
+{
+  "axiom": "F",
+  "rule": "F > FFF[+FFF+FFF+FFF]",
+  "angle": "90",
+  "nesting": 4,
+  "line_size": 5,
+  "start_x": 200,
+  "start_y": 200,
+  "start_angle": ""
+}
