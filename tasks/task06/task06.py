@@ -124,7 +124,7 @@ class LSystemApp:
             1: {
                 # Příklad čtvercového fraktálu
                 "axiom": "F+F+F+F",
-                "rule": "F->F+F-F-FF+F+F-F",
+                "rule": "F>F+F-F-FF+F+F-F",
                 "angle": "90",
                 "nesting": 3,
                 "line_size": 5,
@@ -135,7 +135,7 @@ class LSystemApp:
             2: {
                 # Příklad trojúhelníkového fraktálu
                 "axiom": "F++F++F",
-                "rule": "F->F+F--F+F",
+                "rule": "F>F+F--F+F",
                 "angle": "60",
                 "nesting": 3,
                 "line_size": 14,
@@ -145,7 +145,7 @@ class LSystemApp:
             },
             3: {
                 "axiom": "F",
-                "rule": "F->F[+F]F[-F]F",
+                "rule": "F>F[+F]F[-F]F",
                 "angle": "25.714",  # π/7 ≈ 25.714°
                 "nesting": 5,
                 "line_size": 4,
@@ -155,7 +155,7 @@ class LSystemApp:
             },
             4: {
                 "axiom": "F",
-                "rule": "F->FF+[+F-F-F]-[-F+F+F]",
+                "rule": "F>FF+[+F-F-F]-[-F+F+F]",
                 "angle": "22.5",  # π/8 ≈ 22.5°
                 "nesting": 3,
                 "line_size": 14,
@@ -251,9 +251,10 @@ class LSystemApp:
         self.draw_l_string(l_string, angle, line_size, start_x, start_y, start_angle_rad)
 
     def generate_l_string(self, axiom, rule, nesting):
-        # Generování řetězce L-systému na základě axiómu a pravidla
+        # Remove spaces around '>'
+        rule = rule.replace(" >", ">").replace("> ", ">")
         current = axiom
-        rule_from, rule_to = rule.split("->") if "->" in rule else ("F", "")
+        rule_from, rule_to = rule.split(">") if ">" in rule else ("F", "")
 
         for _ in range(nesting):
             next_str = []
@@ -324,8 +325,8 @@ class LSystemApp:
             return
 
         # Vytvoření základního názvu z prvních znaků pravidla a axiomu
-        base_name = f"ls_{axiom[:3]}_{rule.split('->')[0]}"
-        base_name = base_name.replace("->", "").replace("[", "").replace("]", "")
+        base_name = f"ls_{axiom[:3]}_{rule.split('>')[0]}"
+        base_name = base_name.replace(">", "").replace("[", "").replace("]", "")
         base_name = base_name.replace("+", "p").replace("-", "m")
 
         # Zjištění nejvyššího existujícího čísla pro daný základ názvu
