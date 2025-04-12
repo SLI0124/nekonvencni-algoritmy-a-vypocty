@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 
 
 def define_transformations():
+    # Definice dvou sad transformací
     transformations1 = [
         {"a": 0.00, "b": 0.00, "c": 0.01, "d": 0.00, "e": 0.26, "f": 0.00, "g": 0.00, "h": 0.00, "i": 0.05, "j": 0.00,
          "k": 0.00, "l": 0.00},
@@ -29,7 +30,7 @@ def define_transformations():
 
 
 def generate_points(transformations, iterations=10000):
-    """Generate points using the given transformations."""
+    """Generování bodů pomocí zadaných transformací."""
     histories = []
 
     for transformation in transformations:
@@ -38,7 +39,7 @@ def generate_points(transformations, iterations=10000):
 
         for _ in range(iterations):
             random_row = random.randint(0, 3)
-            t = transformation[random_row]  # získáme slovník transformace
+            t = transformation[random_row]  # získání slovníku transformace
 
             # Aplikace transformace s použitím názvů parametrů
             x_new = t["a"] * x + t["b"] * y + t["c"] * z + t["j"]
@@ -53,7 +54,7 @@ def generate_points(transformations, iterations=10000):
 
 
 def plot_model(history, title, color='blue'):
-    """Plot the 3D model interactively using Plotly."""
+    """Vykreslení 3D modelu interaktivně pomocí knihovny Plotly."""
     x_vals, y_vals, z_vals = zip(*history)
     fig = go.Figure(data=[go.Scatter3d(
         x=x_vals,
@@ -78,8 +79,8 @@ def main():
 
     histories = generate_points(transformations)
 
-    plot_model(histories[0], 'First Model', 'blue')
-    plot_model(histories[1], 'Second Model', 'red')
+    plot_model(histories[0], 'První model', 'blue')
+    plot_model(histories[1], 'Druhý model', 'red')
 
 
 if __name__ == "__main__":
