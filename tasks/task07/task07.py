@@ -1,5 +1,5 @@
 import random
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 
 def define_transformations():
@@ -52,15 +52,25 @@ def generate_points(transformations, iterations=10000):
     return histories
 
 
-def plot_model(history, title, color='b'):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+def plot_model(history, title, color='blue'):
+    """Plot the 3D model interactively using Plotly."""
     x_vals, y_vals, z_vals = zip(*history)
-    ax.scatter(x_vals, y_vals, z_vals, c=color, marker='.')
-    ax.set_title(title)
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    fig = go.Figure(data=[go.Scatter3d(
+        x=x_vals,
+        y=y_vals,
+        z=z_vals,
+        mode='markers',
+        marker=dict(size=2, color=color)
+    )])
+    fig.update_layout(
+        title=title,
+        scene=dict(
+            xaxis_title='X',
+            yaxis_title='Y',
+            zaxis_title='Z'
+        )
+    )
+    fig.show()
 
 
 def main():
@@ -68,10 +78,8 @@ def main():
 
     histories = generate_points(transformations)
 
-    plot_model(histories[0], 'First Model', 'b')
-    plot_model(histories[1], 'Second Model', 'r')
-
-    plt.show()
+    plot_model(histories[0], 'First Model', 'blue')
+    plot_model(histories[1], 'Second Model', 'red')
 
 
 if __name__ == "__main__":
