@@ -26,6 +26,9 @@ class FractalLandscapeApp:
         self.landscape_color = "#228b22"  # Zelená
         self.outline_color = "black"  # Barva obrysu - vždy černá
 
+        # Seznam pro uložené vrstvy
+        self.saved_layers = []
+
         # Vytvoření GUI prvků
         self.create_widgets()
 
@@ -97,6 +100,7 @@ class FractalLandscapeApp:
         button_frame.pack(fill=tk.X, pady=10)
 
         ttk.Button(button_frame, text="Generovat krajinu", command=self.generate_landscape).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Přidat vrstvu", command=self.add_layer).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Vyčistit plátno", command=self.clear_canvas).pack(side=tk.LEFT, padx=5)
 
     def choose_fill_color(self):
@@ -159,9 +163,6 @@ class FractalLandscapeApp:
                 messagebox.showerror("Chyba", "Neplatné hodnoty parametrů")
                 return
 
-            # Vyčištění plátna
-            self.clear_canvas()
-
             # Generování krajiny
             self.landscape_points = self.fractal_landscape(
                 iterations, start_x, start_y, end_x, end_y, offset, roughness
@@ -173,28 +174,68 @@ class FractalLandscapeApp:
         except Exception as e:
             messagebox.showerror("Chyba", f"Chyba: {str(e)}")
 
-    def draw_landscape(self):
-        """Vykreslí jednoduchou krajinu jako jednu vrstvu."""
+    def add_layer(self):
+        """Přidá aktuální krajinu jako vrstvu na plátno."""
         if not self.landscape_points:
+            messagebox.showinfo("Informace", "Nejprve vygenerujte krajinu.")
             return
 
-        # Vyčisti plátno před překreslením
-        self.canvas.delete("all")
+        # Přidání aktuální vrstvy do seznamu uložených vrstev
+        layer = {
+            'points': self.landscape_points.copy(),
+            'color': self.landscape_color,
+            'start_x': self.start_x.get(),
+            'end_x': self.end_x.get()
+        }
+        self.saved_layers.append(layer)
 
-        # Extrahování x a y souřadnic pro vykreslení
+        # Vykreslení vrstvy na plátno bez smazání existujících vrstev
+        self.draw_landscape(preserve_existing=True)
+
+        # Resetování aktuální krajiny
+        self.landscape_points = []
+
+        messagebox.showinfo("Informace", f"Vrstva přidána. Celkem vrstev: {len(self.saved_layers)}")
+
+    def draw_landscape(self, preserve_existing=False):
+        """Vykreslí jednoduchou krajinu jako jednu vrstvu."""
+        if not self.landscape_points and not self.saved_layers:
+            return
+
+        # Vyčisti plátno pokud nemáme zachovat existující vrstvy
+        if not preserve_existing:
+            self.canvas.delete("all")
+
+            # Nejprve vykreslíme všechny uložené vrstvy
+            for layer in self.saved_layers:
+                self._draw_layer(layer)
+
+        # Vykreslíme aktuální krajinu (pokud existuje)
+        if self.landscape_points:
+            # Vytvoříme dočasný 'layer' pro aktuální krajinu
+            current_layer = {
+                'points': self.landscape_points,
+                'color': self.landscape_color,
+                'start_x': self.start_x.get(),
+                'end_x': self.end_x.get()
+            }
+            self._draw_layer(current_layer)
+
+    def _draw_layer(self, layer):
+        """Pomocná metoda pro vykreslení jedné vrstvy."""
         points = []
-        for x, y in self.landscape_points:
+        for x, y in layer['points']:
             points.extend([x, y])
 
         # Vytvoření uzavřeného polygonu pro vyplnění
         fill_points = list(points)  # Kopie bodů
 
         # Přidání bodů pro uzavření polygonu
-        fill_points.extend([self.end_x.get(), self.canvas_height])
-        fill_points.extend([self.start_x.get(), self.canvas_height])
+        fill_points.extend([layer['end_x'], self.canvas_height])
+        fill_points.extend([layer['start_x'], self.canvas_height])
 
         # Vykreslení vyplněné krajiny
-        self.canvas.create_polygon(fill_points, fill=self.landscape_color, outline="")
+        self.canvas.create_polygon(fill_points, fill=layer['color'], outline="")
 
         # Vykreslení obrysu krajiny
         self.canvas.create_line(points, fill="black", width=2)
@@ -203,6 +244,7 @@ class FractalLandscapeApp:
         """Vyčistí plátno a resetuje data krajiny."""
         self.canvas.delete("all")
         self.landscape_points = []
+        self.saved_layers = []
 
 
 if __name__ == "__main__":
