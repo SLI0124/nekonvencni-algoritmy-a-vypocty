@@ -1,4 +1,3 @@
-import numpy as np
 import tkinter as tk
 from tkinter import ttk, messagebox, colorchooser
 import random
@@ -90,25 +89,30 @@ class FractalLandscapeApp:
         color_frame = ttk.Frame(input_frame)
         color_frame.grid(row=7, column=1, sticky="w", padx=5, pady=2)
 
-        self.fill_color_preview = ttk.Label(color_frame, text="■■■", foreground=self.landscape_color,
-                                            font=("Arial", 12))
-        self.fill_color_preview.pack(side=tk.LEFT, padx=2)
+        # Nahrazení textového náhledu barevným obdélníkem
+        self.color_preview = tk.Canvas(color_frame, width=30, height=20, bd=1, relief=tk.SUNKEN)
+        self.color_preview.pack(side=tk.LEFT, padx=2)
+        self.color_preview.create_rectangle(0, 0, 30, 20, fill=self.landscape_color, outline="black")
+
         ttk.Button(color_frame, text="Změnit", command=self.choose_fill_color).pack(side=tk.LEFT, padx=2)
 
-        # Tlačítka pro vykreslení a vyčištění plátna
+        # Tlačítka pro vykreslení a vyčištění plátna - změněno na vertikální uspořádání
         button_frame = ttk.Frame(control_frame)
         button_frame.pack(fill=tk.X, pady=10)
 
-        ttk.Button(button_frame, text="Generovat krajinu", command=self.generate_landscape).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Přidat vrstvu", command=self.add_layer).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Vyčistit plátno", command=self.clear_canvas).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Generovat krajinu", command=self.generate_landscape).pack(fill=tk.X, pady=2)
+        ttk.Button(button_frame, text="Přidat vrstvu", command=self.add_layer).pack(fill=tk.X, pady=2)
+        ttk.Button(button_frame, text="Vyčistit plátno", command=self.clear_canvas).pack(fill=tk.X, pady=2)
 
     def choose_fill_color(self):
         """Otevře dialog pro výběr barvy krajiny."""
         color = colorchooser.askcolor(title="Vyberte barvu krajiny", initialcolor=self.landscape_color)
         if color[1]:  # Pokud uživatel vybral barvu a neklikl Cancel
             self.landscape_color = color[1]
-            self.fill_color_preview.config(foreground=color[1])
+            # Aktualizace barevného náhledu
+            self.color_preview.delete("all")
+            self.color_preview.create_rectangle(0, 0, 30, 20, fill=self.landscape_color, outline="black")
+
             # Pokud už existuje krajina, překresli ji s novou barvou
             if self.landscape_points:
                 self.draw_landscape()
