@@ -8,249 +8,192 @@ import os
 
 np.random.seed(42)
 
-# Parametry pro bifurkační diagram
-n_a_values = 1000  # Počet hodnot parametru
-a_values = np.linspace(2.5, 4.0, n_a_values)  # Rozsah parametru zaměřený na chaotickou oblast
-n_iterations = 100  # Počet iterací pro každou hodnotu parametru
-n_discard = 100  # Počet počátečních iterací k zahození (přechodový jev)
+CRITICAL_POINTS = [3.0, 3.45, 3.57, 3.83]
+CRITICAL_LABELS = ["Perioda 1→2", "Perioda 2→4", "Perioda 4→8", "Chaotické okno"]
 
 
 def logistic_map(x, a):
-    """Logistické zobrazení - základní iterativní funkce"""
     return a * x * (1 - x)
 
 
-def generate_bifurcation_data(a_values, n_iterations, n_discard):
-    """Generování dat pro bifurkační diagram logistického zobrazení"""
+def generate_bifurcation_data(a_values, n_iterations=100, n_discard=100):
+    """Generování dat pro bifurkační diagram"""
     x = np.zeros((len(a_values), n_iterations))
-
-    start_time = time.time()
     print("Generuji bifurkační data...")
 
-    init_x = 0.5  # Počáteční podmínka
     for i, a in enumerate(a_values):
-        x_val = init_x
+        x_val = 0.5
 
         # Zahození přechodových iterací
         for _ in range(n_discard):
             x_val = logistic_map(x_val, a)
 
-        # Sběr stabilních hodnot pro bifurkační diagram
+        # Sběr stabilních hodnot
         for j in range(n_iterations):
             x_val = logistic_map(x_val, a)
             x[i, j] = x_val
 
-        # Indikátor průběhu
-        if (i + 1) % (len(a_values) // 10) == 0:
-            print(f"  Průběh: {(i + 1) / len(a_values) * 100:.1f}%")
+        if (i + 1) % (len(a_values) // 20) == 0:
+            print(f"  Průběh: {(i + 1) / len(a_values) * 100:.0f}%")
 
-    print(f"Hotovo! Čas výpočtu: {time.time() - start_time:.2f} sekund")
     return x
 
 
-def plot_combined_diagram(a_values, actual_data, predicted_data=None, title="Bifurkační diagram"):
-    """Vykreslení bifurkačního diagramu a případné porovnání se simulovanými daty"""
-    # Vytvoření obrázku s odpovídající velikostí a rozložením
-    if predicted_data is not None:
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8))
-        fig.suptitle(title, fontsize=20)
-    else:
-        fig, ax1 = plt.subplots(figsize=(12, 8))
-        ax1.set_title(title, fontsize=18)
+def add_critical_lines(ax, a_values):
+    for cp, label in zip(CRITICAL_POINTS, CRITICAL_LABELS):
+        if np.min(a_values) <= cp <= np.max(a_values):
+            ax.axvline(x=cp, color='red', linestyle='--', alpha=0.5)
+            ax.text(cp, 0.02, label, rotation=90, fontsize=10, color='red')
 
-    # Vykreslení skutečného bifurkačního diagramu
-    a_repeated_actual = np.repeat(a_values, actual_data.shape[1])
-    x_flattened_actual = actual_data.flatten()
-    ax1.scatter(a_repeated_actual, x_flattened_actual, s=0.05, c='black', alpha=0.7)
+
+def plot_combined_diagram(a_values, actual_data, predicted_data=None, title="Bifurkační diagram"):
+    fig = plt.figure(figsize=(24, 12))
+    ax1 = plt.subplot(1, 2, 1)
+    ax2 = plt.subplot(1, 2, 2)
+    fig.suptitle(title, fontsize=20)
+
+    # Levý graf - skutečná data
+    a_repeated = np.repeat(a_values, actual_data.shape[1])
+    x_flattened = actual_data.flatten()
+    ax1.scatter(a_repeated, x_flattened, s=0.05, c='black', alpha=0.7)
     ax1.set_xlabel("Parametr (a)", fontsize=14)
-    ax1.set_ylabel("Stabilní hodnoty x", fontsize=14)
+    ax1.set_ylabel("Hodnoty x", fontsize=14)
     ax1.set_ylim(0, 1)
     ax1.set_xlim(np.min(a_values), np.max(a_values))
     ax1.grid(True, alpha=0.3)
+    add_critical_lines(ax1, a_values)
 
-    # Značky pro kritické body bifurkace
-    critical_points = [3.0, 3.45, 3.57, 3.83]
-    labels = ["Perioda 1→2", "Perioda 2→4", "Perioda 4→8", "Chaotické okno"]
-
-    for cp, label in zip(critical_points, labels):
-        if np.min(a_values) <= cp <= np.max(a_values):
-            ax1.axvline(x=cp, color='red', linestyle='--', alpha=0.5)
-            ax1.text(cp, 0.02, label, rotation=90, fontsize=10, color='red')
-
-    if predicted_data is not None:
-        # Vykreslení predikovaného bifurkačního diagramu
-        a_repeated_pred = np.repeat(a_values, predicted_data.shape[1])
-        x_flattened_pred = predicted_data.flatten()
-        ax2.scatter(a_repeated_pred, x_flattened_pred, s=0.05, c='blue', alpha=0.7)
-        ax2.set_title("Predikovaná bifurkace", fontsize=16)
-        ax2.set_xlabel("Parametr (a)", fontsize=14)
-        ax2.set_ylabel("Predikované hodnoty x", fontsize=14)
-        ax2.set_ylim(0, 1)
-        ax2.set_xlim(np.min(a_values), np.max(a_values))
-        ax2.grid(True, alpha=0.3)
-
-        # Stejné kritické body
-        for cp, label in zip(critical_points, labels):
-            if np.min(a_values) <= cp <= np.max(a_values):
-                ax2.axvline(x=cp, color='red', linestyle='--', alpha=0.5)
-                ax2.text(cp, 0.02, label, rotation=90, fontsize=10, color='red')
+    # Pravý graf - predikovaná data
+    data_to_plot = predicted_data if predicted_data is not None else actual_data
+    a_repeated = np.repeat(a_values, data_to_plot.shape[1])
+    x_flattened = data_to_plot.flatten()
+    ax2.scatter(a_repeated, x_flattened, s=0.05, c='blue', alpha=0.7)
+    ax2.set_title("Predikovaná bifurkace", fontsize=16)
+    ax2.set_xlabel("Parametr (a)", fontsize=14)
+    ax2.set_ylabel("Hodnoty x", fontsize=14)
+    ax2.set_ylim(0, 1)
+    ax2.set_xlim(np.min(a_values), np.max(a_values))
+    ax2.grid(True, alpha=0.3)
+    add_critical_lines(ax2, a_values)
 
     plt.tight_layout()
     return fig
 
 
-def prepare_training_data(a_values, bifurcation_data):
-    """Příprava dat pro trénink neuronové sítě - trénujeme na celých trajektoriích"""
-    X = a_values.reshape(-1, 1)
-    y = bifurcation_data  # Každý řádek je celá trajektorie pro danou hodnotu 'a'
-    return X, y
-
-
 def train_neural_network(X, y):
-    """Trénink neuronové sítě pro predikci trajektorií logistického zobrazení"""
-    # Škálování vstupních hodnot
+    """Trénink neuronové sítě"""
+    print("Trénuji neuronovou síť...")
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-
-    # Rozdělení dat na trénovací a testovací množinu
     X_train, X_test, y_train, y_test = train_test_split(
         X_scaled, y, test_size=0.2, random_state=42
     )
 
-    print("Trénuji neuronovou síť na celých trajektoriích...")
-    start_time = time.time()
-
-    # Vytvoření a trénink modelu MLP
     mlp = MLPRegressor(
-        hidden_layer_sizes=(100, 200, 100),  # Komplexní architektura pro zachycení dynamiky
+        hidden_layer_sizes=(100, 200, 100),
         activation='relu',
         solver='adam',
-        alpha=0.0001,
         batch_size=32,
         learning_rate='adaptive',
-        max_iter=500,
-        early_stopping=True,
+        max_iter=1_000,
+        early_stopping=False,
+        n_iter_no_change=200,
         verbose=True,
+        tol=1e-8,
         random_state=42
     )
 
     mlp.fit(X_train, y_train)
-
-    # Vyhodnocení modelu
-    y_pred_train = mlp.predict(X_train)
-    y_pred_test = mlp.predict(X_test)
-
-    # Výpočet MSE pro každou trajektorii
-    train_mse = np.mean(np.mean((y_train - y_pred_train) ** 2, axis=1))
-    test_mse = np.mean(np.mean((y_test - y_pred_test) ** 2, axis=1))
-
-    print(f"Trénovací MSE trajektorií: {train_mse:.6f}")
-    print(f"Testovací MSE trajektorií: {test_mse:.6f}")
-    print(f"Doba tréninku: {time.time() - start_time:.2f} sekund")
-
     return mlp, scaler
 
 
-def predict_bifurcation(mlp, scaler, a_values):
-    """Použití natrénované neuronové sítě pro predikci trajektorií bifurkačního diagramu"""
-    a_scaled = scaler.transform(a_values.reshape(-1, 1))
-    predicted_trajectories = mlp.predict(a_scaled)
-    return predicted_trajectories
-
-
 def analyze_prediction_quality(a_values, actual_data, predicted_data):
-    """Analýza a vizualizace kvality predikcí"""
-    # Výpočet chybových metrik pro každou hodnotu parametru
+    """Analýza kvality predikce"""
     errors = np.zeros(len(a_values))
 
     for i in range(len(a_values)):
-        # Získání distribucí bodů pro skutečná a predikovaná data
-        actual_vals = actual_data[i]
-        pred_vals = predicted_data[i]
-
-        # Seřazení pro porovnání distribucí
-        actual_sorted = np.sort(actual_vals)
-        pred_sorted = np.sort(pred_vals)
-
-        # Výpočet průměrné absolutní chyby pro tento parametr
+        actual_sorted = np.sort(actual_data[i])
+        pred_sorted = np.sort(predicted_data[i])
         errors[i] = np.mean(np.abs(actual_sorted - pred_sorted))
 
-    # Vizualizace chyby
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(20, 10))
     ax.plot(a_values, errors, 'r-', linewidth=1.5)
-    ax.set_title("Chyba predikce v závislosti na hodnotě parametru", fontsize=16)
+    ax.set_title("Chyba predikce v závislosti na hodnotě parametru", fontsize=18)
     ax.set_xlabel("Parametr (a)", fontsize=14)
     ax.set_ylabel("Průměrná absolutní chyba", fontsize=14)
     ax.grid(True, alpha=0.3)
 
-    # Identifikace oblastí s vysokou chybou
-    high_error = errors > 0.1
-    if np.any(high_error):
-        ax.fill_between(a_values, 0, errors, where=high_error,
+    for cp, label in zip(CRITICAL_POINTS, CRITICAL_LABELS):
+        ax.axvline(x=cp, color='blue', linestyle='--', alpha=0.5)
+        ax.text(cp, 0.005, label, rotation=90, fontsize=10, color='blue')
+
+    high_error_mask = errors > 0.1
+    if np.any(high_error_mask):
+        ax.fill_between(a_values, 0, errors, where=high_error_mask,
                         color='red', alpha=0.3, label='Oblast vysoké chyby')
         ax.legend(fontsize=12)
 
-    # Značky pro kritické body bifurkace
-    critical_points = [3.0, 3.45, 3.57, 3.83]
-    labels = ["Perioda 1→2", "Perioda 2→4", "Perioda 4→8", "Chaotické okno"]
-
-    for cp, label in zip(critical_points, labels):
-        ax.axvline(x=cp, color='blue', linestyle='--', alpha=0.5)
-        ax.text(cp, 0.02, label, rotation=90, fontsize=10, color='blue')
+    ax.axhline(y=0.05, color='green', linestyle='--', alpha=0.7)
+    ax.text(3.9, 0.055, "Práh přijatelné chyby (0.05)", fontsize=10, color='green')
 
     plt.tight_layout()
     return fig, errors
 
 
-def main():
-    results_dir = "results"
+def save_figure(fig, filename, results_dir="results", dpi=300):
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
+    fig.savefig(os.path.join(results_dir, filename), dpi=dpi)
+    plt.close(fig)
 
-    # 1. Generování bifurkačních dat
-    bifurcation_data = generate_bifurcation_data(a_values, n_iterations, n_discard)
 
-    # 2. Vykreslení skutečného bifurkačního diagramu
-    actual_fig = plot_combined_diagram(a_values, bifurcation_data,
-                                       title="Skutečný bifurkační diagram logistického zobrazení")
-    actual_fig.savefig(os.path.join(results_dir, "actual_bifurcation.png"), dpi=300, bbox_inches='tight')
-    plt.close(actual_fig)
+def main():
+    n_a_values = 1000
+    a_values = np.linspace(2.5, 4.0, n_a_values)
+    results_dir = "results"
 
-    # 3. Příprava dat pro neuronovou síť
-    X, y = prepare_training_data(a_values, bifurcation_data)
+    start_time = time.time()
 
-    # 4. Trénink neuronové sítě
-    mlp, scaler = train_neural_network(X, y)
+    # Generování dat
+    bifurcation_data = generate_bifurcation_data(a_values)
 
-    # 5. Generování predikovaného bifurkačního diagramu
-    predicted_bifurcation = predict_bifurcation(mlp, scaler, a_values)
+    # Vykreslení skutečného diagramu
+    actual_fig = plot_combined_diagram(
+        a_values,
+        bifurcation_data,
+        title="Skutečný bifurkační diagram logistického zobrazení"
+    )
+    save_figure(actual_fig, "actual_bifurcation.png", results_dir)
 
-    # 6. Porovnání skutečného a predikovaného diagramu
-    comparison_fig = plot_combined_diagram(a_values, bifurcation_data, predicted_bifurcation,
-                                           title="Porovnání skutečného a predikovaného bifurkačního diagramu")
-    comparison_fig.savefig(os.path.join(results_dir, "comparison.png"), dpi=300, bbox_inches='tight')
-    plt.close(comparison_fig)
+    # Trénink a predikce
+    X = a_values.reshape(-1, 1)
+    mlp, scaler = train_neural_network(X, bifurcation_data)
+    predicted_bifurcation = mlp.predict(scaler.transform(X))
 
-    # 7. Analýza kvality predikce
-    error_fig, errors = analyze_prediction_quality(a_values, bifurcation_data, predicted_bifurcation)
-    error_fig.savefig(os.path.join(results_dir, "prediction_error.png"), dpi=300, bbox_inches='tight')
-    plt.close(error_fig)
+    # Porovnání diagramů
+    comparison_fig = plot_combined_diagram(
+        a_values,
+        bifurcation_data,
+        predicted_bifurcation,
+        title="Porovnání skutečného a predikovaného bifurkačního diagramu"
+    )
+    save_figure(comparison_fig, "comparison.png", results_dir)
 
-    # 8. Detailní porovnání pro chaotickou oblast (a = 3.5 až 4.0)
-    interesting_region = (a_values >= 3.5) & (a_values <= 4.0)
-    a_subset = a_values[interesting_region]
-    actual_subset = bifurcation_data[interesting_region]
-    predicted_subset = predicted_bifurcation[interesting_region]
+    # Analýza chyby
+    error_fig, _ = analyze_prediction_quality(a_values, bifurcation_data, predicted_bifurcation)
+    save_figure(error_fig, "error.png", results_dir)
 
-    detail_fig = plot_combined_diagram(a_subset, actual_subset, predicted_subset,
-                                       title="Detailní porovnání: Chaotická oblast (3.5 - 4.0)")
-    detail_fig.savefig(os.path.join(results_dir, "detailed_comparison.png"), dpi=300, bbox_inches='tight')
-    plt.close(detail_fig)
+    # Detail chaotické oblasti
+    chaotic_mask = (a_values >= 3.5) & (a_values <= 4.0)
+    detail_fig = plot_combined_diagram(
+        a_values[chaotic_mask],
+        bifurcation_data[chaotic_mask],
+        predicted_bifurcation[chaotic_mask],
+        title="Detailní porovnání: Chaotická oblast (3.5 - 4.0)"
+    )
+    save_figure(detail_fig, "chaotic_detail.png", results_dir)
 
-    print(f"Celkový počet hodnot parametru a: {len(a_values)}")
-    print(f"Počet hodnot parametru a v chaotické oblasti: {len(a_subset)}")
-    print(f"Počet bodů v chaotické bifurkaci: {len(a_subset) * n_iterations}")
-    print("Proces dokončen. Výsledky uloženy v adresáři 'results'.")
+    print(f"Dokončeno za {time.time() - start_time:.1f} sekund.")
 
 
 if __name__ == "__main__":
