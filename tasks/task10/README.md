@@ -138,7 +138,10 @@ def main():
 2. **Porovnání skutečného a predikovaného diagramu**
    ![Porovnání diagramů](results/comparison.png)
 
-3. **Analýza chyby predikce**
+3. **Detailní pohled na chaotickou oblast**
+   ![Detail chaotické oblasti](results/chaotic_detail.png)
+
+4. **Analýza chyby predikce**
    ![Analýza chyby](results/error.png)
 
 ## Závěr
@@ -147,3 +150,5 @@ Neuronová síť relativně přesně predikuje bifurkační diagram v oblastech 
 chaotických oblastech (pro `a > 3.57`) je predikce méně přesná, což odpovídá komplexní povaze systému v těchto režimech.
 
 Analýza chyby ukazuje, že největší nepřesnosti se vyskytují v bodech přechodů mezi periodami a v chaotickém režimu.
+Detailní pohled na chaotickou oblast potvrzuje, že neuronová síť zachycuje obecný vzor chování, ale nedokáže přesně
+modelovat všechny jemné detaily chaotických atraktorů.
