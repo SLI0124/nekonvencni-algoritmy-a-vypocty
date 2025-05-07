@@ -4,3 +4,6 @@ plotly
 imageio
 scikit-learn
 tqdm
+gym
+gym[classic_control]
+pygame
