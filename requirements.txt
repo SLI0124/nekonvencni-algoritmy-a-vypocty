@@ -7,3 +7,5 @@ tqdm
 gym
 gym[classic_control]
 pygame
+torch
+pillow
