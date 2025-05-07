@@ -269,15 +269,8 @@ class PoleBalancingApp:
         self.train_btn.config(state="disabled")
         self.visualize_btn.config(state="disabled")
 
-        # Create a new window for visualization
-        vis_window = tk.Toplevel(self.root)
-        vis_window.title("Pole-Balancing Visualization")
-
-        canvas = tk.Canvas(vis_window, width=400, height=300, bg="white")
-        canvas.pack()
-
-        # Run visualization in a separate thread
-        self.root.after(100, lambda: self.run_visualization(vis_window, canvas))
+        # Use the existing canvas in the main window instead of creating a new one
+        self.run_visualization(self.root, self.canvas)
 
     def draw_cartpole(self, canvas, state):
         # Draw cart and pole based on state: [cart_position, cart_velocity, pole_angle, angular_velocity]
