@@ -4,11 +4,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
 from PIL import Image, ImageTk, ImageGrab
 import matplotlib.pyplot as plt
 import io
 import imageio
+import os
 
 if not hasattr(np, 'bool8'):
     np.bool8 = np.bool_  # knihovna gym používá np.bool8, proto je třeba přidat alias
@@ -116,9 +117,21 @@ class PoleBalancingApp:
         self.is_visualizing = False  # Indikátor, zda probíhá vizualizace
         self.max_steps = 500  # Maximální počet kroků
         self.total_steps = 500  # Celkový počet kroků (nastavitelný)
+        self.training_scores = []  # Seznam pro ukládání skóre během tréninku
+
+        # Vytvoření adresářové struktury pro ukládání výsledků
+        self.results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
+        self.graph_dir = os.path.join(self.results_dir, "graph")
+        self.animation_dir = os.path.join(self.results_dir, "animation")
+
+        # Vytvoření adresářů, pokud neexistují
+        os.makedirs(self.results_dir, exist_ok=True)
+        os.makedirs(self.graph_dir, exist_ok=True)
+        os.makedirs(self.animation_dir, exist_ok=True)
 
         # GUI komponenty
         self.canvas = None  # Plátno pro vizualizaci
+        self.graph_canvas = None  # Plátno pro graf
         self.status_text = None  # Textové pole pro zobrazení stavu
         self.visualize_btn = None  # Tlačítko pro vizualizaci
         self.stop_train_btn = None  # Tlačítko pro zastavení tréninku
@@ -126,6 +139,7 @@ class PoleBalancingApp:
         self.batch_entry = None  # Pole pro zadání velikosti dávky
         self.episodes_entry = None  # Pole pro zadání počtu epizod
         self.save_anim_btn = None  # Tlačítko pro uložení animace
+        self.save_graph_btn = None  # Tlačítko pro uložení grafu
 
         # Vytvoření GUI
         self.create_widgets()
@@ -169,6 +183,9 @@ class PoleBalancingApp:
         self.save_anim_btn = ttk.Button(control_frame, text="Save Animation", command=self.capture_animation)
         self.save_anim_btn.grid(row=6, column=0, columnspan=2, pady=5, sticky="ew")
 
+        self.save_graph_btn = ttk.Button(control_frame, text="Save Training Graph", command=self.save_training_graph)
+        self.save_graph_btn.grid(row=7, column=0, columnspan=2, pady=5, sticky="ew")
+
         # === Panel stavu ===
         status_frame = ttk.LabelFrame(self.root, text="Status", padding=(10, 5))
         status_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
@@ -182,9 +199,20 @@ class PoleBalancingApp:
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.status_text.configure(yscrollcommand=scrollbar.set)
 
+        # === Panel grafu ===
+        graph_frame = ttk.LabelFrame(self.root, text="Training Graph", padding=(10, 5))
+        graph_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+
+        # Plátno pro graf
+        self.graph_canvas = tk.Canvas(graph_frame, width=400, height=300, bg="white")
+        self.graph_canvas.grid(row=0, column=0, sticky="nsew")
+
+        # Přidání události pro změnu velikosti grafu
+        self.graph_canvas.bind("<Configure>", self.on_canvas_resize)
+
         # === Panel vizualizace ===
         vis_frame = ttk.LabelFrame(self.root, text="Visualization", padding=(10, 5))
-        vis_frame.grid(row=0, column=1, rowspan=2, padx=10, pady=10, sticky="nsew")
+        vis_frame.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
 
         # Plátno pro vizualizaci
         self.canvas = tk.Canvas(vis_frame, width=400, height=300, bg="white")
@@ -198,6 +226,8 @@ class PoleBalancingApp:
         control_frame.columnconfigure(1, weight=1)
         status_frame.columnconfigure(0, weight=1)
         status_frame.rowconfigure(0, weight=1)
+        graph_frame.columnconfigure(0, weight=1)
+        graph_frame.rowconfigure(0, weight=1)
         vis_frame.columnconfigure(0, weight=1)
         vis_frame.rowconfigure(0, weight=1)
 
@@ -245,6 +275,7 @@ class PoleBalancingApp:
     def run_training(self):
         # Průběh trénování agenta
         scores = []
+        self.training_scores = []  # Reset seznamu skóre
 
         # Iterace přes epizody
         for e in range(self.episodes):
@@ -269,6 +300,7 @@ class PoleBalancingApp:
 
             # Uložení skóre a učení agenta
             scores.append(total_reward)
+            self.training_scores = scores.copy()  # Uložení kopie pro případné pozdější použití
             self.agent.replay(self.batch_size)
 
             # Výpis stavu trénování
@@ -290,7 +322,16 @@ class PoleBalancingApp:
 
     def plot_training_progress(self, scores):
         # Vykreslení grafu postupu trénování
-        fig, ax = plt.subplots(figsize=(4, 3), dpi=100)
+
+        # Získání aktuální velikosti plátna pro graf
+        canvas_width = self.graph_canvas.winfo_width() or 400
+        canvas_height = self.graph_canvas.winfo_height() or 300
+
+        # Přizpůsobení velikosti grafu podle velikosti plátna
+        fig_width = max(4, canvas_width / 100)  # Převod pixelů na palce
+        fig_height = max(3, canvas_height / 100)
+
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=100)
         ax.plot(scores)
         ax.set_title('Training Progress')
         ax.set_xlabel('Episode')
@@ -305,17 +346,47 @@ class PoleBalancingApp:
         plt.savefig(buf, format='png')
         buf.seek(0)
         img = Image.open(buf)
-        img = ImageTk.PhotoImage(img)
-        self.canvas.delete("all")
 
-        # Umístění obrázku doprostřed plátna
-        canvas_width = self.canvas.winfo_width()
-        canvas_height = self.canvas.winfo_height()
-        x_position = canvas_width // 2
-        y_position = canvas_height // 2
-        self.canvas.create_image(x_position, y_position, anchor="center", image=img)
-        self.canvas.image = img
+        # Změna velikosti obrázku podle velikosti plátna
+        img = img.resize((canvas_width, canvas_height), Image.LANCZOS)
+        img = ImageTk.PhotoImage(img)
+        self.graph_canvas.delete("all")
+
+        # Umístění obrázku na plátno
+        self.graph_canvas.create_image(0, 0, anchor="nw", image=img)
+        self.graph_canvas.image = img
         plt.close(fig)
+
+    def save_training_graph(self):
+        # Uložení trénovacího grafu do souboru
+        if not self.training_scores:
+            self.log_message("No training data available to save.")
+            return
+
+        try:
+            # Zjištění počtu existujících grafů v adresáři
+            existing_files = [f for f in os.listdir(self.graph_dir) if
+                              f.startswith("training_graph_") and f.endswith(".png")]
+            file_count = len(existing_files)
+
+            # Vytvoření názvu souboru s pořadovým číslem
+            file_path = os.path.join(self.graph_dir, f"training_graph_{file_count + 1}.png")
+
+            # Vytvoření grafu ve vysokém rozlišení pro ukládání
+            fig, ax = plt.subplots(figsize=(10, 8), dpi=150)
+            ax.plot(self.training_scores)
+            ax.set_title('Training Progress')
+            ax.set_xlabel('Episode')
+            ax.set_ylabel('Score')
+            ax.grid(True)
+            plt.tight_layout()
+
+            plt.savefig(file_path)
+            plt.close(fig)
+
+            self.log_message(f"Training graph saved to {file_path}")
+        except Exception as e:
+            self.log_message(f"Error saving training graph: {str(e)}")
 
     def visualize_solution(self):
         # Spuštění vizualizace natrénovaného modelu
@@ -491,15 +562,30 @@ class PoleBalancingApp:
             total_frames = len(frames)
             self.log_message(f"Saving animation with {total_frames} frames out of {self.total_steps} steps...")
 
+            # Zjištění počtu existujících animací v adresáři
+            existing_files = [f for f in os.listdir(self.animation_dir) if
+                              f.startswith("pole_balancing_") and f.endswith(".gif")]
+            file_count = len(existing_files)
+
+            # Vytvoření názvu souboru s pořadovým číslem
+            file_path = os.path.join(self.animation_dir, f"pole_balancing_{file_count + 1}.gif")
+
             # Vytvoření GIF souboru
-            with imageio.get_writer('pole_balancing.gif', mode='I', duration=0.1) as writer:
+            with imageio.get_writer(file_path, mode='I', duration=0.1) as writer:
                 for i, frame in enumerate(frames, start=1):
                     writer.append_data(frame)
-                    self.log_message(f"Saved frame {i}/{total_frames}.")
+                    if i % 10 == 0 or i == total_frames:
+                        self.log_message(f"Saved frame {i}/{total_frames}.")
 
-            self.log_message("Animation saved as 'pole_balancing.gif'.")
+            self.log_message(f"Animation saved as '{file_path}'.")
         except Exception as e:
             self.log_message(f"Failed to save animation: {str(e)}")
+
+    def on_canvas_resize(self, event):
+        # Funkce volaná při změně velikosti plátna grafu
+        if hasattr(self, 'training_scores') and self.training_scores:
+            # Překreslení grafu s novou velikostí
+            self.plot_training_progress(self.training_scores)
 
 
 if __name__ == "__main__":
