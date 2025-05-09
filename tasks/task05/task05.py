@@ -40,13 +40,18 @@ class DQNAgent:
         self.epsilon = 1.0  # Míra průzkumu prostředí
         self.epsilon_min = 0.01  # Minimální míra průzkumu
         self.epsilon_decay = 0.995  # Rychlost snižování průzkumu
-        self.learning_rate = 0.001  # Rychlost učení
+        self.learning_rate = 0.001  # Zvýšení rychlosti učení
         self.model = QNetwork(state_size, action_size)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.criterion = nn.MSELoss()
 
     def remember(self, state, action, reward, next_state, done):
-        # Uložení zkušenosti do paměti
+        # Vylepšená odměna: penalizace za úhel a pozici
+        pole_angle = abs(state[2])
+        position = abs(state[0])
+        angle_penalty = 1.0 - (pole_angle / (np.pi / 4))  # větší penalizace za větší úhel
+        position_penalty = 1.0 - (position / 2.4)  # penalizace za vzdálenost od středu
+        reward += angle_penalty + position_penalty
         self.memory.append((state, action, reward, next_state, done))
 
     def act(self, state):
@@ -80,7 +85,8 @@ class DQNAgent:
                     target = reward + self.gamma * torch.max(self.model(next_state)).item()
 
             target_f = self.model(state)
-            target_f[action] = target
+            target_f = target_f.clone()  # Vytvoření kopie tensoru pro úpravy
+            target_f[action] = torch.tensor(target, dtype=torch.float32)  # Zajištění správného typu
             states.append(state)
             targets.append(target_f)
 
@@ -107,12 +113,16 @@ class PoleBalancingApp:
         self.env = gym.make('CartPole-v1')
         self.state_size = self.env.observation_space.shape[0]
         self.action_size = self.env.action_space.n
+        self.gamma = 0.99  # Increase discount factor for long-term rewards
+        self.learning_rate = 0.001  # Zvýšení rychlosti učení
         self.agent = DQNAgent(self.state_size, self.action_size)
+        self.agent.gamma = self.gamma
+        self.agent.learning_rate = self.learning_rate
 
         # Konfigurační proměnné
         self.step_counter = None  # Počítadlo kroků
         self.episodes = 2000  # Počet epizod pro trénování
-        self.batch_size = 32  # Velikost dávky pro učení
+        self.batch_size = 64  # Zvýšení velikosti dávky
         self.is_training = False  # Indikátor, zda probíhá trénování
         self.is_visualizing = False  # Indikátor, zda probíhá vizualizace
         self.max_steps = 500  # Maximální počet kroků
@@ -291,9 +301,15 @@ class PoleBalancingApp:
             while self.step_counter < self.total_steps:
                 action = self.agent.act(state)
                 next_state, reward, done, _, _ = self.env.step(action)
-                total_reward += reward
+                # Vylepšená odměna
+                pole_angle = abs(state[2])
+                position = abs(state[0])
+                angle_penalty = 1.0 - (pole_angle / (np.pi / 4))
+                position_penalty = 1.0 - (position / 2.4)
+                reward += angle_penalty + position_penalty
                 self.agent.remember(state, action, reward, next_state, done)
                 state = next_state
+                total_reward += 1  # Skóre = počet kroků, kdy agent udržel tyč
                 self.step_counter += 1
                 if done:
                     break
