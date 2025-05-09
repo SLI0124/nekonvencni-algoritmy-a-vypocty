@@ -101,10 +101,11 @@ class PoleBalancingApp:
         self.agent = DQNAgent(self.state_size, self.action_size)
 
         # Training parameters
-        self.episodes = 500
+        self.episodes = 2000
         self.batch_size = 32
         self.is_training = False
         self.is_visualizing = False
+        self.max_steps = 500
 
         # Create GUI elements
         self.create_widgets()
@@ -117,7 +118,7 @@ class PoleBalancingApp:
         # Training controls
         ttk.Label(control_frame, text="Training Episodes:").grid(row=0, column=0, sticky="w")
         self.episodes_entry = ttk.Entry(control_frame)
-        self.episodes_entry.insert(0, "500")
+        self.episodes_entry.insert(0, str(self.episodes))  # changed default from "500" to self.episodes value
         self.episodes_entry.grid(row=0, column=1, sticky="ew")
 
         ttk.Label(control_frame, text="Batch Size:").grid(row=1, column=0, sticky="w")
@@ -210,14 +211,16 @@ class PoleBalancingApp:
             state = self.env.reset()
             state = state[0]  # Extract the state array from the tuple
             total_reward = 0
+            self.step_counter = 0  # inicializace počtu kroků
 
-            for time in range(500):  # Max 500 steps per episode
+            while self.step_counter < self.max_steps:
                 action = self.agent.act(state)
                 next_state, reward, done, _, _ = self.env.step(action)
                 total_reward += reward
 
                 self.agent.remember(state, action, reward, next_state, done)
                 state = next_state
+                self.step_counter += 1
 
                 if done:
                     break
@@ -231,7 +234,6 @@ class PoleBalancingApp:
             if e % 10 == 0:
                 self.plot_training_progress(scores)
 
-            # Update GUI periodically
             if e % 5 == 0:
                 self.root.update()
 
@@ -300,13 +302,16 @@ class PoleBalancingApp:
 
     def run_visualization(self, window, canvas):
         state = self.env.reset()
-        state = state[0]  # Extract the state array from the tuple
+        state = state[0]  # Extract state
+        self.step_counter = 0  # inicializace počtu kroků
 
         def update_visualization(curr_state):
-            if not self.is_visualizing:
+            if not self.is_visualizing or self.step_counter >= self.max_steps:
+                self.is_visualizing = False
+                self.train_btn.config(state="normal")
+                self.visualize_btn.config(state="normal")
                 return
 
-            # Clear current canvas
             canvas.delete("all")
             self.draw_cartpole(canvas, curr_state)
             window.update()
@@ -315,11 +320,14 @@ class PoleBalancingApp:
             next_state, _, done, _, _ = self.env.step(action)
             if isinstance(next_state, tuple):
                 next_state = next_state[0]
+            self.step_counter += 1
+
             if done:
                 self.is_visualizing = False
                 self.train_btn.config(state="normal")
                 self.visualize_btn.config(state="normal")
                 return
+
             self.root.after(50, lambda: update_visualization(next_state))
 
         update_visualization(state)
